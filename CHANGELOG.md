@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.8
+
+- Fix: lazy-import `LemonadeClient` (and `httpx`) inside `async_step_user` instead of at
+  module load time — HA attempts to import `config_flow.py` before installing requirements,
+  so a top-level `import httpx` raised a silent `ImportError` preventing the integration
+  from ever appearing in the Add Integration dialog
+- Remove auto-restart from add-on run script (unreliable); run script now logs the exact
+  destination path and a clear manual restart reminder
+
 ## 0.3.7
 
 - Fix: remove invalid `quality_scale: "custom"` from manifest (not a valid HA enum value,

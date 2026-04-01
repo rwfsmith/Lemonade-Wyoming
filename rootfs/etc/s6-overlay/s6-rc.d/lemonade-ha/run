@@ -23,10 +23,11 @@ if [ ! -d "${COMPONENT_DEST}" ] || ! diff -rq "${COMPONENT_SRC}" "${COMPONENT_DE
     bashio::log.info "Installing/updating Lemonade HA custom integration ..."
     rm -rf "${COMPONENT_DEST}"
     cp -r "${COMPONENT_SRC}" "${COMPONENT_DEST}"
-    bashio::log.info "Custom integration installed. Restarting Home Assistant core to load it ..."
-    ha core restart || bashio::log.warning "Could not restart HA core automatically — please restart Home Assistant manually."
+    bashio::log.info "Custom integration installed to: ${COMPONENT_DEST}"
+    bashio::log.warning "*** Restart Home Assistant (not the add-on) to load the integration. ***"
+    bashio::log.warning "Then: Settings > Devices & Services > Add Integration > search 'Lemonade'."
 else
-    bashio::log.info "Lemonade HA custom integration is already up to date."
+    bashio::log.info "Lemonade HA custom integration is already up to date at: ${COMPONENT_DEST}"
 fi
 
 bashio::log.info "Add-on running. Integration is managed by Home Assistant."
