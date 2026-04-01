@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.3
+
+- Add native HA custom integration (`custom_components/lemonade_wyoming`)
+  which registers STT, TTS, and conversation agent directly — no manual
+  Wyoming Protocol integration entries needed
+- Add-on automatically copies the custom component to the HA config directory
+  on startup; restart HA once to load it, then configure via
+  Settings → Devices & Services → Add Integration → Lemonade Wyoming
+
 ## 0.3.2
 
 - Fix HEALTHCHECK: use `nc -z` (port-open check) instead of Wyoming protocol

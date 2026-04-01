@@ -25,6 +25,7 @@ RUN \
 COPY wyoming_lemonade/ /usr/src/wyoming_lemonade/
 COPY pyproject.toml /usr/src/
 COPY requirements.txt /usr/src/
+COPY custom_components/ /usr/src/custom_components/
 
 RUN pip3 install --no-cache-dir \
         -r /usr/src/requirements.txt \

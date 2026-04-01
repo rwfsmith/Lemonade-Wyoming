@@ -4,6 +4,28 @@
 # Start the Lemonade-Wyoming bridge server
 # ==============================================================================
 
+# ── Install custom component into HA config directory ────────────────────────
+# HA config is mounted at /homeassistant (current HA OS) or /config (older).
+if [ -d "/homeassistant" ]; then
+    HA_CONFIG="/homeassistant"
+else
+    HA_CONFIG="/config"
+fi
+
+COMPONENT_SRC="/usr/src/custom_components/lemonade_wyoming"
+COMPONENT_DEST="${HA_CONFIG}/custom_components/lemonade_wyoming"
+
+mkdir -p "${HA_CONFIG}/custom_components"
+
+if [ ! -d "${COMPONENT_DEST}" ] || ! diff -rq "${COMPONENT_SRC}" "${COMPONENT_DEST}" > /dev/null 2>&1; then
+    bashio::log.info "Installing/updating Lemonade Wyoming custom component ..."
+    cp -r "${COMPONENT_SRC}" "${COMPONENT_DEST}"
+    bashio::log.info "Custom component installed at ${COMPONENT_DEST}."
+    bashio::log.warning "Restart Home Assistant to load the integration."
+else
+    bashio::log.info "Custom component is already up to date."
+fi
+
 declare -a flags=()
 
 # ── Read add-on options ──────────────────────────────────────────────────────
