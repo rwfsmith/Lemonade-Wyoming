@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.6
+
+- Fix: add `custom_components/lemonade_ha/translations/en.json` so HA can
+  discover the integration in the "Add Integration" dialog
+  (HA reads `translations/en.json` at runtime; `strings.json` alone is not enough)
+
 ## 0.3.5
 
 - Fix: add `s6-rc.d/user/contents.d/lemonade-ha` so s6-overlay actually starts the service

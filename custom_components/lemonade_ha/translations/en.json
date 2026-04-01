@@ -1,0 +1,49 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Lemonade HA \u2014 Connection",
+        "description": "Enter the address where Lemonade is running. Default is localhost:8000.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      },
+      "models": {
+        "title": "Lemonade HA \u2014 Models",
+        "description": "Choose which models to use. These must already be downloaded in Lemonade.",
+        "data": {
+          "stt_model": "Whisper STT model",
+          "stt_language": "STT language",
+          "llm_model": "LLM model",
+          "llm_system_prompt": "LLM system prompt",
+          "llm_max_tokens": "LLM max response tokens",
+          "tts_model": "TTS model",
+          "tts_voice": "TTS voice"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to Lemonade at the given host and port. Make sure Lemonade is running."
+    },
+    "abort": {
+      "already_configured": "Lemonade HA is already configured for this host."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Lemonade HA \u2014 Options",
+        "data": {
+          "stt_model": "Whisper STT model",
+          "stt_language": "STT language",
+          "llm_model": "LLM model",
+          "llm_system_prompt": "LLM system prompt",
+          "llm_max_tokens": "LLM max response tokens",
+          "tts_model": "TTS model",
+          "tts_voice": "TTS voice"
+        }
+      }
+    }
+  }
+}
