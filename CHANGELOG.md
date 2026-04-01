@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.5
+
+- Fix: add `s6-rc.d/user/contents.d/lemonade-ha` so s6-overlay actually starts the service
+  (without this file the run script was silently skipped and nothing happened)
+
 ## 0.3.4
 
 - Remove HEALTHCHECK — Docker now marks container healthy immediately,
