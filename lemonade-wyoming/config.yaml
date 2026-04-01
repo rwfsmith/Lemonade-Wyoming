@@ -1,0 +1,82 @@
+---
+version: 0.1.0
+slug: lemonade-wyoming
+name: Lemonade Wyoming
+description: >-
+  Local Voice Assist powered by Lemonade — Whisper STT, LLM conversation,
+  and Kokoro TTS via the Wyoming protocol.
+url: https://github.com/lemonade-sdk/lemonade-wyoming
+arch:
+  - amd64
+init: false
+discovery:
+  - wyoming
+backup_exclude:
+  - "models*"
+map:
+  - addon_config:rw
+
+options:
+  # --- Speech-to-Text (Whisper) ---
+  stt_model: Whisper-Large-v3-Turbo
+  stt_backend: auto
+  stt_language: en
+  stt_beam_size: 0
+
+  # --- LLM / Conversation ---
+  llm_model: Qwen3-4B-GGUF
+  llm_backend: auto
+  llm_context_size: 4096
+  llm_max_tokens: 256
+  llm_system_prompt: >-
+    You are a helpful smart-home voice assistant called Lemonade.
+    Answer concisely in one or two sentences unless asked for more detail.
+
+  # --- Text-to-Speech (Kokoro) ---
+  tts_model: kokoro-v1
+  tts_voice: af_heart
+
+  # --- Lemonade connection ---
+  lemonade_host: localhost
+  lemonade_port: 8000
+  auto_start_lemonade: false
+
+  # --- Debug ---
+  debug_logging: false
+
+schema:
+  stt_model: >-
+    list(Whisper-Tiny|Whisper-Base|Whisper-Small|Whisper-Medium|Whisper-Large-v3|Whisper-Large-v3-Turbo|custom)
+  stt_custom_model: str?
+  stt_backend: >-
+    list(auto|whispercpp:cpu|whispercpp:npu|whispercpp:vulkan|flm:npu)
+  stt_language: >-
+    list(auto|af|am|ar|as|az|ba|be|bg|bn|bo|br|bs|ca|cs|cy|da|de|el|en|es|et|eu|fa|fi|fo|fr|gl|gu|ha|haw|he|hi|hr|ht|hu|hy|id|is|it|ja|jw|ka|kk|km|kn|ko|la|lb|ln|lo|lt|lv|mg|mi|mk|ml|mn|mr|ms|mt|my|ne|nl|nn|no|oc|pa|pl|ps|pt|ro|ru|sa|sd|si|sk|sl|sn|so|sq|sr|su|sv|sw|ta|te|tg|th|tk|tl|tr|tt|uk|ur|uz|vi|yi|yo|yue|zh)
+  stt_beam_size: int
+
+  llm_model: >-
+    list(Qwen3-4B-GGUF|Qwen3-1.7B-GGUF|Qwen3-0.6B-GGUF|Llama-3.2-1B-Instruct-GGUF|Llama-3.2-3B-Instruct-GGUF|Phi-4-mini-instruct-GGUF|Mistral-7B-Instruct-v0.3-GGUF|custom)
+  llm_custom_model: str?
+  llm_backend: >-
+    list(auto|llamacpp:vulkan|llamacpp:rocm|llamacpp:cpu|llamacpp:metal|flm:npu|ryzenai:npu)
+  llm_context_size: int
+  llm_max_tokens: int
+  llm_system_prompt: str
+
+  tts_model: list(kokoro-v1|custom)
+  tts_custom_model: str?
+  tts_voice: >-
+    list(af_heart|af_sky|af_bella|af_nicole|af_sarah|am_adam|am_michael|am_echo|bf_emma|bm_george|alloy|ash|coral|echo|fable|onyx|nova|shimmer)
+
+  lemonade_host: str
+  lemonade_port: port
+  auto_start_lemonade: bool
+  debug_logging: bool
+
+ports:
+  "10500/tcp": null
+  "10600/tcp": null
+  "10700/tcp": null
+
+homeassistant: "2024.2.0"
+image: ghcr.io/lemonade-sdk/{arch}-addon-lemonade-wyoming

@@ -1,0 +1,92 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# Start the Lemonade-Wyoming bridge server
+# ==============================================================================
+
+declare -a flags=()
+
+# ── Read add-on options ──────────────────────────────────────────────────────
+
+stt_model="$(bashio::config 'stt_model')"
+stt_backend="$(bashio::config 'stt_backend')"
+stt_language="$(bashio::config 'stt_language')"
+stt_beam_size="$(bashio::config 'stt_beam_size')"
+
+llm_model="$(bashio::config 'llm_model')"
+llm_backend="$(bashio::config 'llm_backend')"
+llm_context_size="$(bashio::config 'llm_context_size')"
+llm_max_tokens="$(bashio::config 'llm_max_tokens')"
+llm_system_prompt="$(bashio::config 'llm_system_prompt')"
+
+tts_model="$(bashio::config 'tts_model')"
+tts_voice="$(bashio::config 'tts_voice')"
+
+lemonade_host="$(bashio::config 'lemonade_host')"
+lemonade_port="$(bashio::config 'lemonade_port')"
+auto_start="$(bashio::config 'auto_start_lemonade')"
+
+# ── Handle "custom" model selections ────────────────────────────────────────
+
+if [ "${stt_model}" = "custom" ]; then
+    stt_model="$(bashio::config 'stt_custom_model')"
+    if [ -z "${stt_model}" ]; then
+        bashio::exit.nok "STT Custom Model is not set"
+    fi
+fi
+
+if [ "${llm_model}" = "custom" ]; then
+    llm_model="$(bashio::config 'llm_custom_model')"
+    if [ -z "${llm_model}" ]; then
+        bashio::exit.nok "LLM Custom Model is not set"
+    fi
+fi
+
+if [ "${tts_model}" = "custom" ]; then
+    tts_model="$(bashio::config 'tts_custom_model')"
+    if [ -z "${tts_model}" ]; then
+        bashio::exit.nok "TTS Custom Model is not set"
+    fi
+fi
+
+# ── Build flags ──────────────────────────────────────────────────────────────
+
+flags+=(--stt-model "${stt_model}")
+flags+=(--stt-backend "${stt_backend}")
+flags+=(--stt-language "${stt_language}")
+flags+=(--stt-beam-size "${stt_beam_size}")
+flags+=(--stt-uri "tcp://0.0.0.0:10500")
+
+flags+=(--llm-model "${llm_model}")
+flags+=(--llm-backend "${llm_backend}")
+flags+=(--llm-context-size "${llm_context_size}")
+flags+=(--llm-max-tokens "${llm_max_tokens}")
+flags+=(--llm-system-prompt "${llm_system_prompt}")
+flags+=(--llm-uri "tcp://0.0.0.0:10600")
+
+flags+=(--tts-model "${tts_model}")
+flags+=(--tts-voice "${tts_voice}")
+flags+=(--tts-uri "tcp://0.0.0.0:10700")
+
+flags+=(--lemonade-host "${lemonade_host}")
+flags+=(--lemonade-port "${lemonade_port}")
+
+if bashio::config.true 'auto_start_lemonade'; then
+    flags+=(--auto-start-lemonade)
+fi
+
+if bashio::config.true 'debug_logging'; then
+    flags+=(--debug)
+fi
+
+flags+=(--zeroconf)
+
+# ── Launch ───────────────────────────────────────────────────────────────────
+
+bashio::log.info "Starting Lemonade-Wyoming bridge …"
+bashio::log.info "  STT model:  ${stt_model} (${stt_backend})"
+bashio::log.info "  LLM model:  ${llm_model} (${llm_backend})"
+bashio::log.info "  TTS model:  ${tts_model}  voice=${tts_voice}"
+bashio::log.info "  Lemonade:   http://${lemonade_host}:${lemonade_port}"
+
+exec python3 -m wyoming_lemonade "${flags[@]}"

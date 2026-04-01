@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wyoming-lemonade"
+version = "0.1.0"
+description = "Wyoming protocol server backed by the Lemonade local-AI platform"
+readme = "DOCS.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Lemonade Community"},
+]
+dependencies = [
+    "wyoming>=1.8,<2",
+    "httpx>=0.24",
+]
+
+[project.optional-dependencies]
+zeroconf = ["wyoming[zeroconf]"]
+
+[project.scripts]
+wyoming-lemonade = "wyoming_lemonade.__main__:run"
+
+[tool.setuptools.packages.find]
+include = ["wyoming_lemonade*"]
