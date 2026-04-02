@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+
+- Fix: "Add service" options not appearing in hub ⋮ menu. `SUBENTRY_TYPES`
+  renamed to the correct HA attribute `SUBENTRY_FLOWS` on `LemonadeConfigFlow`.
+
 ## 0.4.0  ⚠️ Breaking change
 
 **Refactor: hub + sub-services model** — each STT, LLM, and TTS engine is now

@@ -137,7 +137,7 @@ class LemonadeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    SUBENTRY_TYPES = {
+    SUBENTRY_FLOWS = {
         "stt": SttSubentryFlow,
         "llm": LlmSubentryFlow,
         "tts": TtsSubentryFlow,
