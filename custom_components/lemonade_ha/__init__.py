@@ -23,9 +23,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     # Reload the entry when subentries are added/removed/updated so that
     # newly created entities are set up without a manual reload.
-    entry.async_on_unload(entry.add_update_listener(
-        lambda hass, entry: hass.config_entries.async_schedule_reload(entry.entry_id)
-    ))
+    async def _update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+        hass.config_entries.async_schedule_reload(entry.entry_id)
+
+    entry.async_on_unload(entry.add_update_listener(_update_listener))
     return True
 
 
