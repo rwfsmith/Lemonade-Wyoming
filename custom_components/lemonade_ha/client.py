@@ -11,7 +11,7 @@ from typing import Any
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
-from .const import EP_CHAT_COMPLETIONS, EP_HEALTH, EP_SPEECH, EP_TRANSCRIPTIONS
+from .const import EP_CHAT_COMPLETIONS, EP_HEALTH, EP_MODELS, EP_SPEECH, EP_TRANSCRIPTIONS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,6 +42,17 @@ class LemonadeClient:
                 return resp.status == 200
         except Exception:
             return False
+
+    async def get_models(self) -> list[str]:
+        """Return list of model IDs available on the server."""
+        try:
+            session = self._get_session()
+            async with session.get(EP_MODELS, timeout=_CONNECT_TIMEOUT) as resp:
+                resp.raise_for_status()
+                data = await resp.json()
+                return [m["id"] for m in data.get("data", [])]
+        except Exception:
+            return []
 
     async def transcribe(self, wav_bytes: bytes, model: str, language: str = "en") -> str:
         data = aiohttp.FormData()

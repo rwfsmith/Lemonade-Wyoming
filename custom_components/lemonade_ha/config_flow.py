@@ -35,16 +35,26 @@ _LOGGER = logging.getLogger(__name__)
 
 # ── Schema helpers ─────────────────────────────────────────────────────────────
 
-def _stt_schema(defaults: dict) -> vol.Schema:
+def _model_selector(models: list[str] | None, default: str) -> vol.Schema:
+    """Return vol.In dropdown if models are known, else free-text str."""
+    if models:
+        options = models if default in models else [default, *models]
+        return vol.In(options)
+    return str
+
+
+def _stt_schema(defaults: dict, models: list[str] | None = None) -> vol.Schema:
     return vol.Schema({
-        vol.Required(CONF_STT_MODEL, default=defaults.get(CONF_STT_MODEL, DEFAULT_STT_MODEL)): str,
+        vol.Required(CONF_STT_MODEL, default=defaults.get(CONF_STT_MODEL, DEFAULT_STT_MODEL)):
+            _model_selector(models, defaults.get(CONF_STT_MODEL, DEFAULT_STT_MODEL)),
         vol.Required(CONF_STT_LANGUAGE, default=defaults.get(CONF_STT_LANGUAGE, DEFAULT_STT_LANGUAGE)): str,
     })
 
 
-def _llm_schema(defaults: dict) -> vol.Schema:
+def _llm_schema(defaults: dict, models: list[str] | None = None) -> vol.Schema:
     return vol.Schema({
-        vol.Required(CONF_LLM_MODEL, default=defaults.get(CONF_LLM_MODEL, DEFAULT_LLM_MODEL)): str,
+        vol.Required(CONF_LLM_MODEL, default=defaults.get(CONF_LLM_MODEL, DEFAULT_LLM_MODEL)):
+            _model_selector(models, defaults.get(CONF_LLM_MODEL, DEFAULT_LLM_MODEL)),
         vol.Optional(CONF_LLM_SYSTEM_PROMPT, default=defaults.get(CONF_LLM_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT)): str,
         vol.Optional(CONF_LLM_MAX_TOKENS, default=defaults.get(CONF_LLM_MAX_TOKENS, DEFAULT_LLM_MAX_TOKENS)): vol.Coerce(int),
     })
@@ -57,6 +67,19 @@ def _tts_schema(defaults: dict) -> vol.Schema:
     })
 
 
+async def _fetch_models(hass, entry_id: str) -> list[str]:
+    """Fetch available model IDs from the Lemonade server."""
+    from .client import LemonadeClient
+    entry = hass.config_entries.async_get_known_entry(entry_id)
+    client = LemonadeClient(entry.data[CONF_HOST], entry.data[CONF_PORT])
+    try:
+        return await client.get_models()
+    except Exception:
+        return []
+    finally:
+        await client.close()
+
+
 # ── Subentry flows ─────────────────────────────────────────────────────────────
 
 class SttSubentryFlow(ConfigSubentryFlow):
@@ -64,22 +87,20 @@ class SttSubentryFlow(ConfigSubentryFlow):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> dict:
         if user_input is not None:
-            return self.async_create_entry(
-                title=user_input[CONF_STT_MODEL],
-                data=user_input,
-            )
-        return self.async_show_form(step_id="user", data_schema=_stt_schema({}))
+            return self.async_create_entry(title="Lemonade STT", data=user_input)
+        models = await _fetch_models(self.hass, self._entry_id)
+        return self.async_show_form(step_id="user", data_schema=_stt_schema({}, models))
 
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> dict:
         current = self._get_reconfigure_subentry()
         if user_input is not None:
-            return self.async_create_entry(
-                title=user_input[CONF_STT_MODEL],
-                data=user_input,
+            return self.async_update_and_abort(
+                self._get_entry(), current, data=user_input, title="Lemonade STT"
             )
+        models = await _fetch_models(self.hass, self._entry_id)
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=_stt_schema(current.data),
+            data_schema=_stt_schema(current.data, models),
         )
 
 
@@ -88,22 +109,20 @@ class LlmSubentryFlow(ConfigSubentryFlow):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> dict:
         if user_input is not None:
-            return self.async_create_entry(
-                title=user_input[CONF_LLM_MODEL],
-                data=user_input,
-            )
-        return self.async_show_form(step_id="user", data_schema=_llm_schema({}))
+            return self.async_create_entry(title="Lemonade", data=user_input)
+        models = await _fetch_models(self.hass, self._entry_id)
+        return self.async_show_form(step_id="user", data_schema=_llm_schema({}, models))
 
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> dict:
         current = self._get_reconfigure_subentry()
         if user_input is not None:
-            return self.async_create_entry(
-                title=user_input[CONF_LLM_MODEL],
-                data=user_input,
+            return self.async_update_and_abort(
+                self._get_entry(), current, data=user_input, title="Lemonade"
             )
+        models = await _fetch_models(self.hass, self._entry_id)
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=_llm_schema(current.data),
+            data_schema=_llm_schema(current.data, models),
         )
 
 
@@ -121,9 +140,10 @@ class TtsSubentryFlow(ConfigSubentryFlow):
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> dict:
         current = self._get_reconfigure_subentry()
         if user_input is not None:
-            return self.async_create_entry(
-                title=f"Kokoro ({user_input[CONF_TTS_VOICE]})",
+            return self.async_update_and_abort(
+                self._get_entry(), current,
                 data=user_input,
+                title=f"Kokoro ({user_input[CONF_TTS_VOICE]})",
             )
         return self.async_show_form(
             step_id="reconfigure",

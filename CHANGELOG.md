@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.3
+
+- Model dropdowns for STT and LLM subentry flows (fetched live from Lemonade
+  `/api/v1/models`; falls back to free-text if server unreachable).
+- Conversation agent and STT entities now use generic names ("Lemonade" and
+  "Lemonade STT") instead of the raw model name, so the pipeline builder shows
+  clean labels regardless of which model is loaded.
+
 ## 0.4.2
 
 - Fix: "Add service" menu still missing. Root cause: HA uses the classmethod

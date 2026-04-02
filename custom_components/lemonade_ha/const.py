@@ -30,6 +30,7 @@ DEFAULT_SYSTEM_PROMPT = (
 # Lemonade HTTP API
 API_PREFIX = "/api/v1"
 EP_HEALTH = f"{API_PREFIX}/health"
+EP_MODELS = f"{API_PREFIX}/models"
 EP_TRANSCRIPTIONS = f"{API_PREFIX}/audio/transcriptions"
 EP_CHAT_COMPLETIONS = f"{API_PREFIX}/chat/completions"
 EP_SPEECH = f"{API_PREFIX}/audio/speech"
