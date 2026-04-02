@@ -22,8 +22,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .client import LemonadeClient
 from .const import (
+    CONF_STT_BACKEND,
     CONF_STT_LANGUAGE,
     CONF_STT_MODEL,
+    DEFAULT_STT_BACKEND,
     DEFAULT_STT_LANGUAGE,
     DEFAULT_STT_MODEL,
     DOMAIN,
@@ -117,9 +119,10 @@ class LemonadeSttEntity(SpeechToTextEntity):
 
         model = self._subentry.data.get(CONF_STT_MODEL, DEFAULT_STT_MODEL)
         language = metadata.language or self._subentry.data.get(CONF_STT_LANGUAGE, DEFAULT_STT_LANGUAGE)
+        backend = self._subentry.data.get(CONF_STT_BACKEND, DEFAULT_STT_BACKEND)
 
         try:
-            text = await self._client.transcribe(wav_bytes, model=model, language=language)
+            text = await self._client.transcribe(wav_bytes, model=model, language=language, backend=backend)
         except Exception:
             _LOGGER.exception("Lemonade STT transcription failed")
             return SpeechResult("", SpeechResultState.ERROR)

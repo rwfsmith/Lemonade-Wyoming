@@ -12,12 +12,15 @@ CONF_LLM_SYSTEM_PROMPT = "llm_system_prompt"
 CONF_LLM_MAX_TOKENS = "llm_max_tokens"
 CONF_TTS_MODEL = "tts_model"
 CONF_TTS_VOICE = "tts_voice"
+CONF_STT_BACKEND = "stt_backend"
 
 # Defaults
 DEFAULT_HOST = "localhost"
 DEFAULT_PORT = 8000
 DEFAULT_STT_MODEL = "Whisper-Large-v3-Turbo"
 DEFAULT_STT_LANGUAGE = "en"
+DEFAULT_STT_BACKEND = "auto"
+STT_BACKENDS = ["auto", "cpu", "npu"]
 DEFAULT_LLM_MODEL = "Qwen3-4B-GGUF"
 DEFAULT_LLM_MAX_TOKENS = 1024
 DEFAULT_TTS_MODEL = "kokoro-v1"

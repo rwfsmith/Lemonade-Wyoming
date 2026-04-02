@@ -55,12 +55,16 @@ class LemonadeClient:
         except Exception:
             return []
 
-    async def transcribe(self, wav_bytes: bytes, model: str, language: str = "en") -> str:
+    async def transcribe(
+        self, wav_bytes: bytes, model: str, language: str = "en", backend: str = "auto"
+    ) -> str:
         data = aiohttp.FormData()
         data.add_field("file", io.BytesIO(wav_bytes), filename="audio.wav", content_type="audio/wav")
         data.add_field("model", model)
         if language and language != "auto":
             data.add_field("language", language)
+        if backend and backend != "auto":
+            data.add_field("backend", backend)
         session = self._get_session()
         async with session.post(EP_TRANSCRIPTIONS, data=data, timeout=_READ_TIMEOUT) as resp:
             resp.raise_for_status()

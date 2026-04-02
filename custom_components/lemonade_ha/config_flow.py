@@ -14,14 +14,17 @@ from .const import (
     CONF_LLM_MODEL,
     CONF_LLM_SYSTEM_PROMPT,
     CONF_PORT,
+    CONF_STT_BACKEND,
     CONF_STT_LANGUAGE,
     CONF_STT_MODEL,
+    STT_BACKENDS,
     CONF_TTS_MODEL,
     CONF_TTS_VOICE,
     DEFAULT_HOST,
     DEFAULT_LLM_MAX_TOKENS,
     DEFAULT_LLM_MODEL,
     DEFAULT_PORT,
+    DEFAULT_STT_BACKEND,
     DEFAULT_STT_LANGUAGE,
     DEFAULT_STT_MODEL,
     DEFAULT_SYSTEM_PROMPT,
@@ -49,6 +52,8 @@ def _stt_schema(defaults: dict, models: list[str] | None = None) -> vol.Schema:
         vol.Required(CONF_STT_MODEL, default=defaults.get(CONF_STT_MODEL, DEFAULT_STT_MODEL)):
             _model_selector(models, defaults.get(CONF_STT_MODEL, DEFAULT_STT_MODEL)),
         vol.Required(CONF_STT_LANGUAGE, default=defaults.get(CONF_STT_LANGUAGE, DEFAULT_STT_LANGUAGE)): str,
+        vol.Required(CONF_STT_BACKEND, default=defaults.get(CONF_STT_BACKEND, DEFAULT_STT_BACKEND)):
+            vol.In(STT_BACKENDS),
     })
 
 
