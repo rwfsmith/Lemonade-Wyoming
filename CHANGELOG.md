@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.10
+
+- Fix: replace `httpx` with `aiohttp` (always bundled with HA) — no external pip requirements.
+  If HA failed to install `httpx` from PyPI (network issue, pip failure, etc.), the integration
+  would silently not load. With zero requirements, nothing can block loading.
+- Remove `requirements` from manifest entirely (empty list)
+
 ## 0.3.9
 
 - Fix: add `"dependencies": ["conversation"]` and `"after_dependencies": ["assist_pipeline", "intent"]`

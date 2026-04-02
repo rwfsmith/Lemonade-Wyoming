@@ -1,18 +1,19 @@
-"""Self-contained async HTTP client for the Lemonade REST API."""
+"""Async HTTP client for the Lemonade REST API using aiohttp (bundled with HA)."""
 
 from __future__ import annotations
 
+import aiohttp
 import io
-import json
 import logging
 import wave
-from typing import Any, AsyncIterator
-
-import httpx
+from typing import Any
 
 from .const import EP_CHAT_COMPLETIONS, EP_HEALTH, EP_SPEECH, EP_TRANSCRIPTIONS
 
 _LOGGER = logging.getLogger(__name__)
+
+_CONNECT_TIMEOUT = aiohttp.ClientTimeout(total=10)
+_READ_TIMEOUT = aiohttp.ClientTimeout(total=300)
 
 
 class LemonadeClient:
@@ -20,29 +21,36 @@ class LemonadeClient:
 
     def __init__(self, host: str, port: int) -> None:
         self._base_url = f"http://{host}:{port}"
-        self._http = httpx.AsyncClient(
-            base_url=self._base_url,
-            timeout=httpx.Timeout(connect=10.0, read=300.0, write=30.0, pool=10.0),
-        )
+        self._session: aiohttp.ClientSession | None = None
+
+    def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession(base_url=self._base_url)
+        return self._session
 
     async def close(self) -> None:
-        await self._http.aclose()
+        if self._session and not self._session.closed:
+            await self._session.close()
 
     async def health_check(self) -> bool:
         try:
-            resp = await self._http.get(EP_HEALTH, timeout=5.0)
-            return resp.status_code == 200
+            session = self._get_session()
+            async with session.get(EP_HEALTH, timeout=_CONNECT_TIMEOUT) as resp:
+                return resp.status == 200
         except Exception:
             return False
 
     async def transcribe(self, wav_bytes: bytes, model: str, language: str = "en") -> str:
-        files = {"file": ("audio.wav", io.BytesIO(wav_bytes), "audio/wav")}
-        data: dict[str, str] = {"model": model}
+        data = aiohttp.FormData()
+        data.add_field("file", io.BytesIO(wav_bytes), filename="audio.wav", content_type="audio/wav")
+        data.add_field("model", model)
         if language and language != "auto":
-            data["language"] = language
-        resp = await self._http.post(EP_TRANSCRIPTIONS, files=files, data=data, timeout=120.0)
-        resp.raise_for_status()
-        return resp.json().get("text", "")
+            data.add_field("language", language)
+        session = self._get_session()
+        async with session.post(EP_TRANSCRIPTIONS, data=data, timeout=_READ_TIMEOUT) as resp:
+            resp.raise_for_status()
+            result = await resp.json()
+            return result.get("text", "")
 
     async def chat_completion(
         self,
@@ -58,9 +66,11 @@ class LemonadeClient:
             "temperature": temperature,
             "stream": False,
         }
-        resp = await self._http.post(EP_CHAT_COMPLETIONS, json=body, timeout=120.0)
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
+        session = self._get_session()
+        async with session.post(EP_CHAT_COMPLETIONS, json=body, timeout=_READ_TIMEOUT) as resp:
+            resp.raise_for_status()
+            result = await resp.json()
+            return result["choices"][0]["message"]["content"]
 
     async def synthesize_speech(
         self, text: str, model: str = "kokoro-v1", voice: str = "af_heart"
@@ -72,9 +82,10 @@ class LemonadeClient:
             "voice": voice,
             "response_format": "pcm",
         }
-        resp = await self._http.post(EP_SPEECH, json=body, timeout=120.0)
-        resp.raise_for_status()
-        return resp.content
+        session = self._get_session()
+        async with session.post(EP_SPEECH, json=body, timeout=_READ_TIMEOUT) as resp:
+            resp.raise_for_status()
+            return await resp.read()
 
     # ── helpers ───────────────────────────────────────────────────────────
 
