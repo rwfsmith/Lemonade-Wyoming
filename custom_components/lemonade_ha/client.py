@@ -96,6 +96,8 @@ class LemonadeClient:
             "temperature": temperature,
             "stream": True,
         }
+        if "qwen3" in model.lower():
+            body["enable_thinking"] = False
         session = self._get_session()
         chunks: list[str] = []
         async with session.post(EP_CHAT_COMPLETIONS, json=body, timeout=_READ_TIMEOUT) as resp:
