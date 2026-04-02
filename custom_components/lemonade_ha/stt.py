@@ -23,11 +23,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .client import LemonadeClient
 from .const import (
     CONF_STT_LANGUAGE,
-    CONF_STT_MODEL,
     DEFAULT_STT_LANGUAGE,
-    DEFAULT_STT_MODEL,
     DOMAIN,
     WHISPER_CHANNELS,
+    WHISPER_MODELS,
     WHISPER_SAMPLE_RATE,
     WHISPER_SAMPLE_WIDTH,
 )
@@ -41,19 +40,32 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     client: LemonadeClient = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([LemonadeSttEntity(entry, client)])
+    # Register one STT entity per Whisper model so users can pick the
+    # model directly from the Voice Assistant pipeline dropdown.
+    async_add_entities([
+        LemonadeSttEntity(entry, client, model_id, display)
+        for model_id, display in WHISPER_MODELS
+    ])
 
 
 class LemonadeSttEntity(SpeechToTextEntity):
-    """Whisper STT via Lemonade."""
+    """Whisper STT via Lemonade — one entity per model size."""
 
-    _attr_name = "Lemonade Whisper"
     _attr_has_entity_name = True
 
-    def __init__(self, entry: ConfigEntry, client: LemonadeClient) -> None:
+    def __init__(
+        self,
+        entry: ConfigEntry,
+        client: LemonadeClient,
+        model_id: str,
+        display: str,
+    ) -> None:
         self._entry = entry
         self._client = client
-        self._attr_unique_id = f"{entry.entry_id}_stt"
+        self._model_id = model_id
+        self._attr_name = f"Lemonade Whisper {display}"
+        slug = model_id.lower().replace("-", "_").replace(" ", "_")
+        self._attr_unique_id = f"{entry.entry_id}_stt_{slug}"
 
     @property
     def supported_languages(self) -> list[str]:
@@ -111,7 +123,7 @@ class LemonadeSttEntity(SpeechToTextEntity):
         )
 
         data = self._entry.options or self._entry.data
-        model = data.get(CONF_STT_MODEL, DEFAULT_STT_MODEL)
+        model = self._model_id  # entity IS the model; ignore config entry setting
         language = metadata.language or data.get(CONF_STT_LANGUAGE, DEFAULT_STT_LANGUAGE)
 
         try:

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.19
+
+- Feat: register one STT entity per Whisper model size so the model can be
+  selected directly from the Voice Assistant pipeline STT dropdown, just like
+  TTS voices. Available engines: Tiny, Base, Small, Medium, Large v2, Large v3,
+  Large v3 Turbo, Large v3 Turbo (GGUF). The entity always uses its own model
+  regardless of the config-entry STT model setting.
+
 ## 0.3.18
 
 - Fix: TTS voice dropdown now appears in the HA Voice Assistant UI. Added
