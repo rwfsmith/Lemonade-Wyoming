@@ -1,5 +1,7 @@
 # Lemonade HA — Local Voice Assist for Home Assistant
 
+> **Transparency notice:** This integration was entirely vibe coded with GitHub Copilot. Use it accordingly.
+
 Run **fully local** voice assistants in Home Assistant using [Lemonade](https://github.com/lemonade-sdk/lemonade) as the AI backend.
 
 | Capability | Backend | Models |
