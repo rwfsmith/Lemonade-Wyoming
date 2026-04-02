@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.12
+
+- Fix: replace `ConfigFlowResult` (added HA 2024.4) with `FlowResult` from
+  `homeassistant.data_entry_flow` which is available in all HA versions.
+  `ConfigFlowResult` import caused an `ImportError` when the user clicked the
+  integration, producing the "Invalid handler specified" error.
+
 ## 0.3.11
 
 - Fix: add `config:rw` to map alongside `homeassistant:rw` so the HA config dir
