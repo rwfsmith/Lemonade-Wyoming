@@ -133,18 +133,32 @@ class LemonadeClient:
     async def synthesize_speech(
         self, text: str, model: str = "kokoro-v1", voice: str = "af_heart"
     ) -> bytes:
-        """Return raw PCM bytes (24 kHz / 16-bit / mono)."""
+        """Return raw PCM bytes (24 kHz / 16-bit / mono).
+
+        Retries once on ServerDisconnectedError, which occurs when aiohttp
+        picks a stale keep-alive connection from the pool that the server has
+        already closed.
+        """
         body: dict[str, Any] = {
             "input": text,
             "model": model,
             "voice": voice,
             "response_format": "pcm",
         }
-        session = self._get_session()
         _LOGGER.debug("TTS request → model=%s voice=%s text_len=%d", model, voice, len(text))
-        async with session.post(EP_SPEECH, json=body, timeout=_READ_TIMEOUT) as resp:
-            resp.raise_for_status()
-            return await resp.read()
+        for attempt in range(2):
+            try:
+                session = self._get_session()
+                async with session.post(EP_SPEECH, json=body, timeout=_READ_TIMEOUT) as resp:
+                    resp.raise_for_status()
+                    return await resp.read()
+            except aiohttp.ServerDisconnectedError:
+                if attempt == 0:
+                    _LOGGER.debug("TTS: server disconnected on attempt 1, retrying")
+                    # Close the session so a fresh connection is made
+                    await self.close()
+                    continue
+                raise
 
     # ── helpers ───────────────────────────────────────────────────────────
 
