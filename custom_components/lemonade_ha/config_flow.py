@@ -5,8 +5,7 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
-from homeassistant.core import callback
+from homeassistant.config_entries import ConfigFlow, ConfigSubentryFlow
 
 from .const import (
     CONF_HOST,
@@ -33,10 +32,116 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+# ── Schema helpers ─────────────────────────────────────────────────────────────
+
+def _stt_schema(defaults: dict) -> vol.Schema:
+    return vol.Schema({
+        vol.Required(CONF_STT_MODEL, default=defaults.get(CONF_STT_MODEL, DEFAULT_STT_MODEL)): str,
+        vol.Required(CONF_STT_LANGUAGE, default=defaults.get(CONF_STT_LANGUAGE, DEFAULT_STT_LANGUAGE)): str,
+    })
+
+
+def _llm_schema(defaults: dict) -> vol.Schema:
+    return vol.Schema({
+        vol.Required(CONF_LLM_MODEL, default=defaults.get(CONF_LLM_MODEL, DEFAULT_LLM_MODEL)): str,
+        vol.Optional(CONF_LLM_SYSTEM_PROMPT, default=defaults.get(CONF_LLM_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT)): str,
+        vol.Optional(CONF_LLM_MAX_TOKENS, default=defaults.get(CONF_LLM_MAX_TOKENS, DEFAULT_LLM_MAX_TOKENS)): vol.Coerce(int),
+    })
+
+
+def _tts_schema(defaults: dict) -> vol.Schema:
+    return vol.Schema({
+        vol.Required(CONF_TTS_MODEL, default=defaults.get(CONF_TTS_MODEL, DEFAULT_TTS_MODEL)): str,
+        vol.Required(CONF_TTS_VOICE, default=defaults.get(CONF_TTS_VOICE, DEFAULT_TTS_VOICE)): str,
+    })
+
+
+# ── Subentry flows ─────────────────────────────────────────────────────────────
+
+class SttSubentryFlow(ConfigSubentryFlow):
+    """Add or reconfigure a Whisper STT service."""
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> dict:
+        if user_input is not None:
+            return self.async_create_entry(
+                title=user_input[CONF_STT_MODEL],
+                data=user_input,
+            )
+        return self.async_show_form(step_id="user", data_schema=_stt_schema({}))
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> dict:
+        current = self._get_reconfigure_subentry()
+        if user_input is not None:
+            return self.async_create_entry(
+                title=user_input[CONF_STT_MODEL],
+                data=user_input,
+            )
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_stt_schema(current.data),
+        )
+
+
+class LlmSubentryFlow(ConfigSubentryFlow):
+    """Add or reconfigure an LLM conversation service."""
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> dict:
+        if user_input is not None:
+            return self.async_create_entry(
+                title=user_input[CONF_LLM_MODEL],
+                data=user_input,
+            )
+        return self.async_show_form(step_id="user", data_schema=_llm_schema({}))
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> dict:
+        current = self._get_reconfigure_subentry()
+        if user_input is not None:
+            return self.async_create_entry(
+                title=user_input[CONF_LLM_MODEL],
+                data=user_input,
+            )
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_llm_schema(current.data),
+        )
+
+
+class TtsSubentryFlow(ConfigSubentryFlow):
+    """Add or reconfigure a Kokoro TTS service."""
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> dict:
+        if user_input is not None:
+            return self.async_create_entry(
+                title=f"Kokoro ({user_input[CONF_TTS_VOICE]})",
+                data=user_input,
+            )
+        return self.async_show_form(step_id="user", data_schema=_tts_schema({}))
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> dict:
+        current = self._get_reconfigure_subentry()
+        if user_input is not None:
+            return self.async_create_entry(
+                title=f"Kokoro ({user_input[CONF_TTS_VOICE]})",
+                data=user_input,
+            )
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_tts_schema(current.data),
+        )
+
+
+# ── Main config flow ───────────────────────────────────────────────────────────
+
 class LemonadeConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Lemonade HA."""
 
     VERSION = 1
+
+    SUBENTRY_TYPES = {
+        "stt": SttSubentryFlow,
+        "llm": LlmSubentryFlow,
+        "tts": TtsSubentryFlow,
+    }
 
     def __init__(self) -> None:
         self._host: str = DEFAULT_HOST
@@ -51,8 +156,7 @@ class LemonadeConfigFlow(ConfigFlow, domain=DOMAIN):
             from .client import LemonadeClient
             client = LemonadeClient(self._host, self._port)
             try:
-                ok = await client.health_check()
-                if not ok:
+                if not await client.health_check():
                     errors["base"] = "cannot_connect"
             except Exception:
                 errors["base"] = "cannot_connect"
@@ -60,69 +164,18 @@ class LemonadeConfigFlow(ConfigFlow, domain=DOMAIN):
                 await client.close()
 
             if not errors:
-                return await self.async_step_models()
+                await self.async_set_unique_id(f"{self._host}:{self._port}")
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title=f"Lemonade ({self._host}:{self._port})",
+                    data={CONF_HOST: self._host, CONF_PORT: self._port},
+                )
 
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
-                vol.Required(CONF_HOST, default=self._host): str,
-                vol.Required(CONF_PORT, default=self._port): vol.Coerce(int),
+                vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
+                vol.Required(CONF_PORT, default=DEFAULT_PORT): vol.Coerce(int),
             }),
             errors=errors,
-        )
-
-    async def async_step_models(self, user_input: dict[str, Any] | None = None) -> dict:
-        if user_input is not None:
-            await self.async_set_unique_id(f"{self._host}:{self._port}")
-            self._abort_if_unique_id_configured()
-            return self.async_create_entry(
-                title="Lemonade HA",
-                data={
-                    CONF_HOST: self._host,
-                    CONF_PORT: self._port,
-                    **user_input,
-                },
-            )
-
-        return self.async_show_form(
-            step_id="models",
-            data_schema=vol.Schema({
-                vol.Optional(CONF_STT_MODEL, default=DEFAULT_STT_MODEL): str,
-                vol.Optional(CONF_STT_LANGUAGE, default=DEFAULT_STT_LANGUAGE): str,
-                vol.Optional(CONF_LLM_MODEL, default=DEFAULT_LLM_MODEL): str,
-                vol.Optional(CONF_LLM_SYSTEM_PROMPT, default=DEFAULT_SYSTEM_PROMPT): str,
-                vol.Optional(CONF_LLM_MAX_TOKENS, default=DEFAULT_LLM_MAX_TOKENS): vol.Coerce(int),
-                vol.Optional(CONF_TTS_MODEL, default=DEFAULT_TTS_MODEL): str,
-                vol.Optional(CONF_TTS_VOICE, default=DEFAULT_TTS_VOICE): str,
-            }),
-        )
-
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
-        return LemonadeOptionsFlow(config_entry)
-
-
-class LemonadeOptionsFlow(OptionsFlow):
-    """Allow reconfiguring models without re-entering host/port."""
-
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        self._entry = config_entry
-
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> dict:
-        if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
-
-        d = self._entry.data
-        return self.async_show_form(
-            step_id="init",
-            data_schema=vol.Schema({
-                vol.Optional(CONF_STT_MODEL, default=d.get(CONF_STT_MODEL, DEFAULT_STT_MODEL)): str,
-                vol.Optional(CONF_STT_LANGUAGE, default=d.get(CONF_STT_LANGUAGE, DEFAULT_STT_LANGUAGE)): str,
-                vol.Optional(CONF_LLM_MODEL, default=d.get(CONF_LLM_MODEL, DEFAULT_LLM_MODEL)): str,
-                vol.Optional(CONF_LLM_SYSTEM_PROMPT, default=d.get(CONF_LLM_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT)): str,
-                vol.Optional(CONF_LLM_MAX_TOKENS, default=d.get(CONF_LLM_MAX_TOKENS, DEFAULT_LLM_MAX_TOKENS)): vol.Coerce(int),
-                vol.Optional(CONF_TTS_MODEL, default=d.get(CONF_TTS_MODEL, DEFAULT_TTS_MODEL)): str,
-                vol.Optional(CONF_TTS_VOICE, default=d.get(CONF_TTS_VOICE, DEFAULT_TTS_VOICE)): str,
-            }),
         )

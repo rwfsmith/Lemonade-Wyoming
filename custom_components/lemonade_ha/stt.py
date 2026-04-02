@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import AsyncIterable
+from typing import Any, AsyncIterable
 
 from homeassistant.components.stt import (
     AudioBitRates,
@@ -23,10 +23,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .client import LemonadeClient
 from .const import (
     CONF_STT_LANGUAGE,
+    CONF_STT_MODEL,
     DEFAULT_STT_LANGUAGE,
+    DEFAULT_STT_MODEL,
     DOMAIN,
     WHISPER_CHANNELS,
-    WHISPER_MODELS,
     WHISPER_SAMPLE_RATE,
     WHISPER_SAMPLE_WIDTH,
 )
@@ -40,32 +41,24 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     client: LemonadeClient = hass.data[DOMAIN][entry.entry_id]
-    # Register one STT entity per Whisper model so users can pick the
-    # model directly from the Voice Assistant pipeline dropdown.
     async_add_entities([
-        LemonadeSttEntity(entry, client, model_id, display)
-        for model_id, display in WHISPER_MODELS
+        LemonadeSttEntity(entry, subentry, client)
+        for subentry in entry.subentries.values()
+        if subentry.subentry_type == "stt"
     ])
 
 
 class LemonadeSttEntity(SpeechToTextEntity):
-    """Whisper STT via Lemonade — one entity per model size."""
+    """Whisper STT via Lemonade — one entity per STT subentry."""
 
-    _attr_has_entity_name = True
+    _attr_has_entity_name = False
 
-    def __init__(
-        self,
-        entry: ConfigEntry,
-        client: LemonadeClient,
-        model_id: str,
-        display: str,
-    ) -> None:
+    def __init__(self, entry: ConfigEntry, subentry: Any, client: LemonadeClient) -> None:
         self._entry = entry
+        self._subentry = subentry
         self._client = client
-        self._model_id = model_id
-        self._attr_name = f"Lemonade Whisper {display}"
-        slug = model_id.lower().replace("-", "_").replace(" ", "_")
-        self._attr_unique_id = f"{entry.entry_id}_stt_{slug}"
+        self._attr_name = subentry.title
+        self._attr_unique_id = f"{entry.entry_id}_stt_{subentry.subentry_id}"
 
     @property
     def supported_languages(self) -> list[str]:
@@ -122,9 +115,8 @@ class LemonadeSttEntity(SpeechToTextEntity):
             channels=metadata.channel,
         )
 
-        data = self._entry.options or self._entry.data
-        model = self._model_id  # entity IS the model; ignore config entry setting
-        language = metadata.language or data.get(CONF_STT_LANGUAGE, DEFAULT_STT_LANGUAGE)
+        model = self._subentry.data.get(CONF_STT_MODEL, DEFAULT_STT_MODEL)
+        language = metadata.language or self._subentry.data.get(CONF_STT_LANGUAGE, DEFAULT_STT_LANGUAGE)
 
         try:
             text = await self._client.transcribe(wav_bytes, model=model, language=language)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Literal
+from typing import Any, Literal
 
 from homeassistant.components.conversation import (
     ConversationEntity,
@@ -35,20 +35,24 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     client: LemonadeClient = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([LemonadeLlmEntity(entry, client)])
+    async_add_entities([
+        LemonadeLlmEntity(entry, subentry, client)
+        for subentry in entry.subentries.values()
+        if subentry.subentry_type == "llm"
+    ])
 
 
 class LemonadeLlmEntity(ConversationEntity):
-    """LLM conversation agent via Lemonade."""
+    """LLM conversation agent via Lemonade — one entity per LLM subentry."""
 
-    _attr_name = "Lemonade LLM"
-    _attr_has_entity_name = True
+    _attr_has_entity_name = False
 
-    def __init__(self, entry: ConfigEntry, client: LemonadeClient) -> None:
+    def __init__(self, entry: ConfigEntry, subentry: Any, client: LemonadeClient) -> None:
         self._entry = entry
+        self._subentry = subentry
         self._client = client
-        self._attr_unique_id = f"{entry.entry_id}_conversation"
-        # Per-conversation history: conversation_id -> list of messages
+        self._attr_name = subentry.title
+        self._attr_unique_id = f"{entry.entry_id}_llm_{subentry.subentry_id}"
         self._histories: dict[str, list[dict[str, str]]] = {}
 
     @property
@@ -56,7 +60,7 @@ class LemonadeLlmEntity(ConversationEntity):
         return "*"
 
     async def async_process(self, user_input: ConversationInput) -> ConversationResult:
-        data = self._entry.options or self._entry.data
+        data = self._subentry.data
         model = data.get(CONF_LLM_MODEL, DEFAULT_LLM_MODEL)
         system_prompt = data.get(CONF_LLM_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT)
         max_tokens = int(data.get(CONF_LLM_MAX_TOKENS, DEFAULT_LLM_MAX_TOKENS))

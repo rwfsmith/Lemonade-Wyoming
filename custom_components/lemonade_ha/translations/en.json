@@ -8,19 +8,6 @@
           "host": "Host",
           "port": "Port"
         }
-      },
-      "models": {
-        "title": "Lemonade HA \u2014 Models",
-        "description": "Choose which models to use. These must already be downloaded in Lemonade.",
-        "data": {
-          "stt_model": "Whisper STT model",
-          "stt_language": "STT language",
-          "llm_model": "LLM model",
-          "llm_system_prompt": "LLM system prompt",
-          "llm_max_tokens": "LLM max response tokens",
-          "tts_model": "TTS model",
-          "tts_voice": "TTS voice"
-        }
       }
     },
     "error": {
@@ -30,18 +17,69 @@
       "already_configured": "Lemonade HA is already configured for this host."
     }
   },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Lemonade HA \u2014 Options",
-        "data": {
-          "stt_model": "Whisper STT model",
-          "stt_language": "STT language",
-          "llm_model": "LLM model",
-          "llm_system_prompt": "LLM system prompt",
-          "llm_max_tokens": "LLM max response tokens",
-          "tts_model": "TTS model",
-          "tts_voice": "TTS voice"
+  "config_subentries": {
+    "stt": {
+      "initiate_flow": {
+        "user": "Add Whisper STT"
+      },
+      "step": {
+        "user": {
+          "title": "Whisper STT",
+          "data": {
+            "stt_model": "Model",
+            "stt_language": "Language"
+          }
+        },
+        "reconfigure": {
+          "title": "Edit Whisper STT",
+          "data": {
+            "stt_model": "Model",
+            "stt_language": "Language"
+          }
+        }
+      }
+    },
+    "llm": {
+      "initiate_flow": {
+        "user": "Add LLM conversation agent"
+      },
+      "step": {
+        "user": {
+          "title": "LLM Conversation Agent",
+          "data": {
+            "llm_model": "Model",
+            "llm_system_prompt": "System prompt",
+            "llm_max_tokens": "Max response tokens"
+          }
+        },
+        "reconfigure": {
+          "title": "Edit LLM Conversation Agent",
+          "data": {
+            "llm_model": "Model",
+            "llm_system_prompt": "System prompt",
+            "llm_max_tokens": "Max response tokens"
+          }
+        }
+      }
+    },
+    "tts": {
+      "initiate_flow": {
+        "user": "Add Kokoro TTS"
+      },
+      "step": {
+        "user": {
+          "title": "Kokoro TTS",
+          "data": {
+            "tts_model": "Model",
+            "tts_voice": "Voice"
+          }
+        },
+        "reconfigure": {
+          "title": "Edit Kokoro TTS",
+          "data": {
+            "tts_model": "Model",
+            "tts_voice": "Voice"
+          }
         }
       }
     }

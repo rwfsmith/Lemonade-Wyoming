@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0  ⚠️ Breaking change
+
+**Refactor: hub + sub-services model** — each STT, LLM, and TTS engine is now
+a separately configured sub-service, exactly like Local LLM Server. After
+updating, existing integration entries will show no entities until you add
+sub-services via the integration's ⋮ menu.
+
+- `integration_type` changed from `service` to `hub`.
+- Main config flow now only asks for host + port.
+- Three subentry types added: `stt` (Whisper model + language), `llm`
+  (model + system prompt + max tokens), `tts` (model + voice). Each type
+  can have multiple instances (e.g. two different LLM sub-services at once).
+- Every sub-service has its own edit/reconfigure dialog (gear icon).
+- Options flow removed — all config is now per sub-service.
+
 ## 0.3.19
 
 - Feat: register one STT entity per Whisper model size so the model can be

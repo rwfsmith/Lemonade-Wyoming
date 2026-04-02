@@ -39,18 +39,6 @@ WHISPER_SAMPLE_RATE = 16000
 WHISPER_SAMPLE_WIDTH = 2
 WHISPER_CHANNELS = 1
 
-# Known Whisper models available through Lemonade: (api_name, display_suffix)
-WHISPER_MODELS: list[tuple[str, str]] = [
-    ("Whisper-Tiny-GGUF",            "Tiny"),
-    ("Whisper-Base-GGUF",            "Base"),
-    ("Whisper-Small-GGUF",           "Small"),
-    ("Whisper-Medium-GGUF",          "Medium"),
-    ("Whisper-Large-v2-GGUF",        "Large v2"),
-    ("Whisper-Large-v3-GGUF",        "Large v3"),
-    ("Whisper-Large-v3-Turbo",       "Large v3 Turbo"),
-    ("Whisper-Large-v3-Turbo-GGUF",  "Large v3 Turbo (GGUF)"),
-]
-
 # Audio — Kokoro outputs 24 kHz / 16-bit / mono
 KOKORO_SAMPLE_RATE = 24000
 KOKORO_SAMPLE_WIDTH = 2

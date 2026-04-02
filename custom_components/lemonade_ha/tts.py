@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.components.tts import TextToSpeechEntity, TtsAudioType, Voice
 from homeassistant.config_entries import ConfigEntry
@@ -58,19 +59,24 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     client: LemonadeClient = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([LemonadeTtsEntity(entry, client)])
+    async_add_entities([
+        LemonadeTtsEntity(entry, subentry, client)
+        for subentry in entry.subentries.values()
+        if subentry.subentry_type == "tts"
+    ])
 
 
 class LemonadeTtsEntity(TextToSpeechEntity):
-    """Kokoro TTS via Lemonade."""
+    """Kokoro TTS via Lemonade — one entity per TTS subentry."""
 
-    _attr_name = "Lemonade Kokoro"
-    _attr_has_entity_name = True
+    _attr_has_entity_name = False
 
-    def __init__(self, entry: ConfigEntry, client: LemonadeClient) -> None:
+    def __init__(self, entry: ConfigEntry, subentry: Any, client: LemonadeClient) -> None:
         self._entry = entry
+        self._subentry = subentry
         self._client = client
-        self._attr_unique_id = f"{entry.entry_id}_tts"
+        self._attr_name = subentry.title
+        self._attr_unique_id = f"{entry.entry_id}_tts_{subentry.subentry_id}"
 
     @property
     def default_language(self) -> str:
@@ -86,7 +92,7 @@ class LemonadeTtsEntity(TextToSpeechEntity):
 
     @property
     def default_options(self) -> dict:
-        return {"voice": self._entry.data.get(CONF_TTS_VOICE, DEFAULT_TTS_VOICE)}
+        return {"voice": self._subentry.data.get(CONF_TTS_VOICE, DEFAULT_TTS_VOICE)}
 
     async def async_get_tts_voice_list(self) -> list[Voice]:
         return [Voice(voice_id=vid, name=name) for vid, name in SUPPORTED_VOICES]
@@ -94,7 +100,7 @@ class LemonadeTtsEntity(TextToSpeechEntity):
     async def async_get_tts_audio(
         self, message: str, language: str, options: dict | None = None
     ) -> TtsAudioType:
-        data = self._entry.options or self._entry.data
+        data = self._subentry.data
         model = data.get(CONF_TTS_MODEL, DEFAULT_TTS_MODEL)
         voice = (options or {}).get("voice") or data.get(CONF_TTS_VOICE, DEFAULT_TTS_VOICE)
 
