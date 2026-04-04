@@ -50,6 +50,32 @@ def _tool_to_openai(tool: llm.Tool) -> dict:
     }
 
 
+async def _get_llm_tools(
+    hass: HomeAssistant, user_input: ConversationInput, system_prompt: str
+) -> tuple[list[dict], str, Any]:
+    """Try to fetch HA Assist tools. Returns (tools, full_system_prompt).
+
+    Falls back to ([], system_prompt) on any error so conversation still works.
+    """
+    try:
+        llm_context = llm.LLMContext(
+            platform=DOMAIN,
+            context=user_input.context,
+            user_prompt=user_input.text,
+            language=user_input.language,
+            assistant=ha_conversation.HOME_ASSISTANT_AGENT,
+            device_id=user_input.device_id,
+        )
+        llm_api = await llm.async_get_api(hass, "assist", llm_context)
+        tools = [_tool_to_openai(t) for t in llm_api.tools]
+        full_system = f"{system_prompt}\n\n{llm_api.api_prompt}"
+        _LOGGER.debug("Loaded %d HA tools", len(tools))
+        return tools, full_system, llm_api
+    except Exception:
+        _LOGGER.debug("HA LLM tools unavailable, running without tool calling", exc_info=True)
+        return [], system_prompt, None
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -81,30 +107,24 @@ class LemonadeLlmEntity(ConversationEntity):
         return "*"
 
     async def async_process(self, user_input: ConversationInput) -> ConversationResult:
+        try:
+            return await self._async_process(user_input)
+        except Exception:
+            _LOGGER.exception("Unexpected error in Lemonade conversation agent")
+            intent_response = intent.IntentResponse(language=user_input.language)
+            intent_response.async_set_speech("Sorry, an unexpected error occurred.")
+            return ConversationResult(response=intent_response, conversation_id=None)
+
+    async def _async_process(self, user_input: ConversationInput) -> ConversationResult:
         data = self._subentry.data
         model = data.get(CONF_LLM_MODEL, DEFAULT_LLM_MODEL)
         system_prompt = data.get(CONF_LLM_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT)
         max_tokens = int(data.get(CONF_LLM_MAX_TOKENS, DEFAULT_LLM_MAX_TOKENS))
 
         # ── Fetch HA Assist tools ───────────────────────────────────────────
-        llm_context = llm.LLMContext(
-            platform=DOMAIN,
-            context=user_input.context,
-            user_prompt=user_input.text,
-            language=user_input.language,
-            assistant=ha_conversation.HOME_ASSISTANT_AGENT,
-            device_id=user_input.device_id,
+        tools, full_system, llm_api = await _get_llm_tools(
+            self.hass, user_input, system_prompt
         )
-        try:
-            llm_api = await llm.async_get_api(self.hass, "assist", llm_context)
-            tools = [_tool_to_openai(t) for t in llm_api.tools]
-            full_system = f"{system_prompt}\n\n{llm_api.api_prompt}"
-            _LOGGER.debug("Loaded %d HA tools", len(tools))
-        except Exception:
-            _LOGGER.debug("HA LLM tools unavailable, running without tool calling")
-            llm_api = None
-            tools = []
-            full_system = system_prompt
 
         # ── Conversation history ────────────────────────────────────────────
         conv_id = user_input.conversation_id or ""
