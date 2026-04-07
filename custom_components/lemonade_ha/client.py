@@ -6,6 +6,7 @@ import aiohttp
 import io
 import json
 import logging
+import random
 import re
 import wave
 from typing import Any
@@ -104,6 +105,7 @@ class LemonadeClient:
             "messages": patched,
             "max_tokens": max_tokens,
             "temperature": temperature,
+            "seed": random.randint(0, 2**31 - 1),
             "stream": True,
         }
         if "qwen3" in model.lower():
